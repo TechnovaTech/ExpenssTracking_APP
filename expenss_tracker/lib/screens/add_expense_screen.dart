@@ -56,18 +56,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         backgroundColor: Colors.grey[50],
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-        title: Text(
-          'Add Expense',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          title: Text(
+            'Add Expense',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF6C63FF)),
+          ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF6C63FF)),
-        ),
-      ),
-      body: SingleChildScrollView(
+        body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,6 +394,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

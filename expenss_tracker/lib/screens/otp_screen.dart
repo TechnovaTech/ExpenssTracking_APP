@@ -79,17 +79,17 @@ class _OtpScreenState extends State<OtpScreen> {
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color(0xFF374151),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Color(0xFF374151),
+            ),
           ),
         ),
-      ),
-      body: SafeArea(
+        body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -257,6 +257,7 @@ class _OtpScreenState extends State<OtpScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
