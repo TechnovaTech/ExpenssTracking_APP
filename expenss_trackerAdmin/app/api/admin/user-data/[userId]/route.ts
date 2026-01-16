@@ -1,0 +1,27 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getUserDb } from '@/lib/mongodb';
+import { verifyToken } from '@/lib/auth';
+
+export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
+  try {
+    const token = req.headers.get('authorization')?.split(' ')[1];
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const payload = verifyToken(token);
+    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+
+    const db = await getUserDb(params.userId);
+    
+    const [expenses, income, categories, paymentMethods, persons] = await Promise.all([
+      db.collection('expenses').find({}).sort({ date: -1 }).toArray(),
+      db.collection('income').find({}).sort({ date: -1 }).toArray(),
+      db.collection('categories').find({}).toArray(),
+      db.collection('payment_methods').find({}).toArray(),
+      db.collection('persons').find({}).toArray()
+    ]);
+    
+    return NextResponse.json({ expenses, income, categories, paymentMethods, persons });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+  }
+}
