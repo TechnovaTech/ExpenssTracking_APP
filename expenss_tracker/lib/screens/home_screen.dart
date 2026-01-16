@@ -6,6 +6,7 @@ import 'add_income_screen.dart';
 import 'history_screen.dart';
 import 'reports_screen.dart';
 import 'category_view_screen.dart';
+import 'category_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -205,9 +206,9 @@ class HomeScreen extends StatelessWidget {
                     
                     Row(
                       children: [
-                        _buildCategoryCard('Medical', '₹2,450', Icons.local_hospital, const Color(0xFFE53E3E)),
-                        _buildCategoryCard('Personal', '₹3,200', Icons.person, const Color(0xFF3182CE)),
-                        _buildCategoryCard('Wife', '₹4,800', Icons.favorite, const Color(0xFFD53F8C)),
+                        _buildCategoryCard(context, 'Medical', '₹2,450', Icons.local_hospital, const Color(0xFFE53E3E)),
+                        _buildCategoryCard(context, 'Personal', '₹3,200', Icons.person, const Color(0xFF3182CE)),
+                        _buildCategoryCard(context, 'Wife', '₹4,800', Icons.favorite, const Color(0xFFD53F8C)),
                       ],
                     ),
                   ],
@@ -318,51 +319,63 @@ class HomeScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildCategoryCard(String title, String amount, IconData icon, Color color) {
+  Widget _buildCategoryCard(BuildContext context, String title, String amount, IconData icon, Color color) {
     return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryDetailScreen(
+              categoryName: title,
+              categoryIcon: icon,
+              categoryColor: color,
             ),
-          ],
+          ),
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: const Color(0xFF6B7280),
-                fontWeight: FontWeight.w500,
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 28),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              amount,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1A1A1A),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: const Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                amount,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
