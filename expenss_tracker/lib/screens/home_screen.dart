@@ -47,22 +47,16 @@ class HomeScreen extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
-                        Row(
-                          children: [
-                            const Icon(Icons.menu, color: Colors.white),
-                            const SizedBox(width: 10),
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                              ),
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                child: const Icon(Icons.person, color: Colors.white, size: 20),
-                              ),
-                            ),
-                          ],
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                          ),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            child: const Icon(Icons.person, color: Colors.white, size: 20),
+                          ),
                         ),
                       ],
                     ),
