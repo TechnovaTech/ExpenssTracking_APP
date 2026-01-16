@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -16,6 +18,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _noteController = TextEditingController();
   final _amountFocusNode = FocusNode();
   final _noteFocusNode = FocusNode();
+  final _newCategoryController = TextEditingController();
+  final _newPaymentMethodController = TextEditingController();
+  final _newPersonController = TextEditingController();
   String _selectedCategory = 'Food';
   String _selectedPaymentMethod = 'Cash';
   String _selectedPerson = 'Self';
@@ -24,15 +29,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String? _uploadedDocument;
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> _categories = [
+  List<String> _categories = [
     'Food', 'Transport', 'Shopping', 'Medical', 'Entertainment', 
     'Bills', 'Education', 'Personal', 'Wife', 'Other'
   ];
 
-  final List<String> _paymentMethods = ['Cash', 'Online', 'Credit Card'];
-  final List<String> _persons = ['Self', 'Child', 'Spouse'];
+  List<String> _paymentMethods = ['Cash', 'Online', 'Credit Card'];
+  List<String> _persons = ['Self', 'Child', 'Spouse'];
 
-  final Map<String, IconData> _categoryIcons = {
+  Map<String, IconData> _categoryIcons = {
     'Food': Icons.restaurant,
     'Transport': Icons.directions_car,
     'Shopping': Icons.shopping_bag,
@@ -44,6 +49,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     'Wife': Icons.favorite,
     'Other': Icons.category,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _categories = prefs.getStringList('expense_categories') ?? ['Food', 'Transport', 'Shopping', 'Medical', 'Entertainment', 'Bills', 'Education', 'Personal', 'Wife', 'Other'];
+      _paymentMethods = prefs.getStringList('expense_payment_methods') ?? ['Cash', 'Online', 'Credit Card'];
+      _persons = prefs.getStringList('expense_persons') ?? ['Self', 'Child', 'Spouse'];
+    });
+  }
+
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('expense_categories', _categories);
+    await prefs.setStringList('expense_payment_methods', _paymentMethods);
+    await prefs.setStringList('expense_persons', _persons);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,38 +138,75 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _categories.map((category) {
-                  final isSelected = category == _selectedCategory;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedCategory = category),
+                children: [
+                  ..._categories.map((category) {
+                    final isSelected = category == _selectedCategory;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedCategory = category),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF6C63FF) : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _categoryIcons[category],
+                              size: 18,
+                              color: isSelected ? Colors.white : Colors.grey[600],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              category,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected ? Colors.white : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  // Add Category Button
+                  GestureDetector(
+                    onTap: _showAddCategoryDialog,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF6C63FF) : Colors.grey[100],
+                        color: const Color(0xFF6C63FF).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF6C63FF),
+                          width: 2,
+                          style: BorderStyle.solid,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            _categoryIcons[category],
+                          const Icon(
+                            Icons.add,
                             size: 18,
-                            color: isSelected ? Colors.white : Colors.grey[600],
+                            color: Color(0xFF6C63FF),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            category,
+                            'Add New',
                             style: GoogleFonts.inter(
                               fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected ? Colors.white : Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6C63FF),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
             ),
 
@@ -151,14 +215,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // 3. Payment Method
             _buildSection(
               'Payment Method',
-              Row(
-                children: _paymentMethods.map((method) {
-                  final isSelected = method == _selectedPaymentMethod;
-                  return Expanded(
-                    child: GestureDetector(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._paymentMethods.map((method) {
+                    final isSelected = method == _selectedPaymentMethod;
+                    return GestureDetector(
                       onTap: () => setState(() => _selectedPaymentMethod = method),
                       child: Container(
-                        margin: const EdgeInsets.only(right: 8),
+                        width: (MediaQuery.of(context).size.width - 88) / 3,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: isSelected ? const Color(0xFF6C63FF) : Colors.grey[100],
@@ -174,9 +240,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         ),
                       ),
+                    );
+                  }).toList(),
+                  GestureDetector(
+                    onTap: _showAddPaymentMethodDialog,
+                    child: Container(
+                      width: (MediaQuery.of(context).size.width - 88) / 3,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6C63FF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF6C63FF), width: 2),
+                      ),
+                      child: const Icon(Icons.add, size: 20, color: Color(0xFF6C63FF)),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
             ),
 
@@ -185,14 +264,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // 4. Person
             _buildSection(
               'Person',
-              Row(
-                children: _persons.map((person) {
-                  final isSelected = person == _selectedPerson;
-                  return Expanded(
-                    child: GestureDetector(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._persons.map((person) {
+                    final isSelected = person == _selectedPerson;
+                    return GestureDetector(
                       onTap: () => setState(() => _selectedPerson = person),
                       child: Container(
-                        margin: const EdgeInsets.only(right: 8),
+                        width: (MediaQuery.of(context).size.width - 88) / 3,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: isSelected ? const Color(0xFF6C63FF) : Colors.grey[100],
@@ -208,9 +289,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         ),
                       ),
+                    );
+                  }).toList(),
+                  GestureDetector(
+                    onTap: _showAddPersonDialog,
+                    child: Container(
+                      width: (MediaQuery.of(context).size.width - 88) / 3,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6C63FF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF6C63FF), width: 2),
+                      ),
+                      child: const Icon(Icons.add, size: 20, color: Color(0xFF6C63FF)),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
             ),
 
@@ -431,6 +525,131 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
+  void _showAddCategoryDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Add New Category', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: _newCategoryController,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: 'Enter category name',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () { _newCategoryController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
+            ElevatedButton(
+              onPressed: () {
+                if (_newCategoryController.text.trim().isNotEmpty) {
+                  setState(() {
+                    final newCategory = _newCategoryController.text.trim();
+                    _categories.insert(_categories.length - 1, newCategory);
+                    _categoryIcons[newCategory] = Icons.label;
+                    _selectedCategory = newCategory;
+                  });
+                  _saveData();
+                  _newCategoryController.clear();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Category added!'), backgroundColor: Colors.green));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C63FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddPaymentMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Add Payment Method', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: _newPaymentMethodController,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: 'Enter payment method',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () { _newPaymentMethodController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
+            ElevatedButton(
+              onPressed: () {
+                if (_newPaymentMethodController.text.trim().isNotEmpty) {
+                  setState(() {
+                    _paymentMethods.add(_newPaymentMethodController.text.trim());
+                    _selectedPaymentMethod = _newPaymentMethodController.text.trim();
+                  });
+                  _saveData();
+                  _newPaymentMethodController.clear();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment method added!'), backgroundColor: Colors.green));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C63FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddPersonDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Add Person', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: _newPersonController,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: 'Enter person name',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () { _newPersonController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
+            ElevatedButton(
+              onPressed: () {
+                if (_newPersonController.text.trim().isNotEmpty) {
+                  setState(() {
+                    _persons.add(_newPersonController.text.trim());
+                    _selectedPerson = _newPersonController.text.trim();
+                  });
+                  _saveData();
+                  _newPersonController.clear();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Person added!'), backgroundColor: Colors.green));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6C63FF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _uploadImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -484,6 +703,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _noteController.dispose();
     _amountFocusNode.dispose();
     _noteFocusNode.dispose();
+    _newCategoryController.dispose();
+    _newPaymentMethodController.dispose();
+    _newPersonController.dispose();
     super.dispose();
   }
 }

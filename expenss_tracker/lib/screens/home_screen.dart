@@ -256,7 +256,7 @@ class HomeScreen extends StatelessWidget {
                             'Add Income',
                             Icons.add_circle_outline,
                             const LinearGradient(
-                              colors: [Color(0xFF51CF66), Color(0xFF40C057)],
+                              colors: [Color(0xFF2FB344), Color(0xFF27A03D)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
