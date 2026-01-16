@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test OTP API</title>
+</head>
+<body>
+    <h2>Test OTP API</h2>
+    
+    <div>
+        <h3>Send OTP</h3>
+        <input type="email" id="email" placeholder="Enter email" value="test@example.com">
+        <button onclick="sendOTP()">Send OTP</button>
+        <div id="sendResult"></div>
+    </div>
+    
+    <div>
+        <h3>Verify OTP</h3>
+        <input type="text" id="otp" placeholder="Enter OTP">
+        <button onclick="verifyOTP()">Verify OTP</button>
+        <div id="verifyResult"></div>
+    </div>
+
+    <script>
+        async function sendOTP() {
+            const email = document.getElementById('email').value;
+            const resultDiv = document.getElementById('sendResult');
+            
+            try {
+                const response = await fetch('http://localhost:3002/api/send-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<p style="color: ${response.ok ? 'green' : 'red'}">${data.message}</p>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function verifyOTP() {
+            const email = document.getElementById('email').value;
+            const otp = document.getElementById('otp').value;
+            const resultDiv = document.getElementById('verifyResult');
+            
+            try {
+                const response = await fetch('http://localhost:3002/api/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email, otp: otp })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<p style="color: ${response.ok ? 'green' : 'red'}">${data.message}</p>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

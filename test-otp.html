@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OTP Test</title>
+</head>
+<body>
+    <h1>OTP Backend Test</h1>
+    <input type="email" id="email" placeholder="Enter email">
+    <button onclick="sendOTP()">Send OTP</button>
+    <p id="result"></p>
+
+    <script>
+        async function sendOTP() {
+            const email = document.getElementById('email').value;
+            const result = document.getElementById('result');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                result.textContent = 'Success: ' + data.message;
+                result.style.color = 'green';
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+                result.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>
