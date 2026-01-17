@@ -1,91 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserDb } from '@/lib/mongodb';
-import { verifyToken } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-export async function GET(req: NextRequest) {
-  try {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const INCOME_FILE = join(process.cwd(), 'income.json');
 
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-
-    const db = await getUserDb(payload.userId);
-    const income = await db.collection('income').find({}).sort({ date: -1 }).toArray();
-    
-    return NextResponse.json({ income });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+function loadIncome() {
+  if (existsSync(INCOME_FILE)) {
+    return JSON.parse(readFileSync(INCOME_FILE, 'utf-8'));
   }
+  return [];
 }
 
-export async function POST(req: NextRequest) {
+function saveIncome(income: any[]) {
+  writeFileSync(INCOME_FILE, JSON.stringify(income, null, 2));
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function POST(request: Request) {
   try {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { userEmail, amount, category, person, paymentMethod, description, date } = await request.json();
 
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (!userEmail || !amount || !category) {
+      return NextResponse.json({ message: 'Missing required fields' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      });
+    }
 
-    const { amount, source, description, date } = await req.json();
-    const db = await getUserDb(payload.userId);
-    
-    const result = await db.collection('income').insertOne({
-      userId: payload.userId,
-      amount,
-      source,
-      description,
-      date: new Date(date),
-      createdAt: new Date()
+    const income = loadIncome();
+    const newIncome = {
+      id: Date.now().toString(),
+      userEmail: userEmail.toLowerCase().trim(),
+      amount: parseFloat(amount),
+      category,
+      person: person || '',
+      paymentMethod: paymentMethod || '',
+      description: description || '',
+      date: date || new Date().toISOString(),
+      type: 'income',
+      createdAt: new Date().toISOString()
+    };
+
+    income.push(newIncome);
+    saveIncome(income);
+
+    console.log(`💰 Income added: ${userEmail} - ₹${amount} from ${category}`);
+
+    return NextResponse.json({ 
+      message: 'Income added successfully',
+      income: newIncome 
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
     });
-
-    return NextResponse.json({ id: result.insertedId });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create' }, { status: 500 });
+  } catch (error: any) {
+    console.error('❌ Income error:', error);
+    return NextResponse.json({ message: 'Failed to add income' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const url = new URL(request.url);
+    const userEmail = url.searchParams.get('userEmail')?.toLowerCase().trim();
 
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    const income = loadIncome();
+    const userIncome = userEmail 
+      ? income.filter((inc: any) => inc.userEmail === userEmail)
+      : income;
 
-    const { id, amount, source, description, date } = await req.json();
-    const db = await getUserDb(payload.userId);
-    const { ObjectId } = require('mongodb');
-    
-    await db.collection('income').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { amount, source, description, date: new Date(date) } }
-    );
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      income: userIncome,
+      total: userIncome.length 
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    
-    const db = await getUserDb(payload.userId);
-    const { ObjectId } = require('mongodb');
-    
-    await db.collection('income').deleteOne({ _id: new ObjectId(id) });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
+    return NextResponse.json({ message: 'Failed to get income' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }

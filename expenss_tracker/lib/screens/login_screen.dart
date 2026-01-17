@@ -23,10 +23,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final result = await OTPService.sendOTP(_emailController.text);
+    print('OTP Result: $result'); // Debug log
 
     setState(() => _isLoading = false);
 
-    if (result['success']) {
+    if (result['success'] == true) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -36,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
-      _showMessage(result['message']);
+      _showMessage(result['message'] ?? 'Failed to send OTP');
     }
   }
 

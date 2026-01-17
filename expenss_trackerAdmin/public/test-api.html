@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        input { margin: 5px; padding: 8px; width: 200px; }
+        button { padding: 10px 20px; background: #6C63FF; color: white; border: none; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>Expense & Income API Test</h1>
+    
+    <div class="form">
+        <h3>Add Expense</h3>
+        <input type="email" id="expenseEmail" placeholder="User Email" value="test@gmail.com"><br>
+        <input type="number" id="expenseAmount" placeholder="Amount" value="100"><br>
+        <input type="text" id="expenseCategory" placeholder="Category" value="Food"><br>
+        <input type="text" id="expensePerson" placeholder="Person" value="John"><br>
+        <input type="text" id="expensePayment" placeholder="Payment Method" value="Cash"><br>
+        <input type="text" id="expenseDesc" placeholder="Description" value="Lunch"><br>
+        <input type="date" id="expenseDate" value="2024-01-15"><br>
+        <button onclick="addExpense()">Add Expense</button>
+        <div id="expenseResult" class="result"></div>
+    </div>
+
+    <div class="form">
+        <h3>Add Income</h3>
+        <input type="email" id="incomeEmail" placeholder="User Email" value="test@gmail.com"><br>
+        <input type="number" id="incomeAmount" placeholder="Amount" value="5000"><br>
+        <input type="text" id="incomeCategory" placeholder="Category" value="Salary"><br>
+        <input type="text" id="incomePerson" placeholder="Person" value="Company"><br>
+        <input type="text" id="incomePayment" placeholder="Payment Method" value="Bank"><br>
+        <input type="text" id="incomeDesc" placeholder="Description" value="Monthly salary"><br>
+        <input type="date" id="incomeDate" value="2024-01-01"><br>
+        <button onclick="addIncome()">Add Income</button>
+        <div id="incomeResult" class="result"></div>
+    </div>
+
+    <div class="form">
+        <h3>Get Balance</h3>
+        <input type="email" id="balanceEmail" placeholder="User Email" value="test@gmail.com"><br>
+        <button onclick="getBalance()">Get Balance</button>
+        <div id="balanceResult" class="result"></div>
+    </div>
+
+    <script>
+        async function addExpense() {
+            const data = {
+                userEmail: document.getElementById('expenseEmail').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                category: document.getElementById('expenseCategory').value,
+                person: document.getElementById('expensePerson').value,
+                paymentMethod: document.getElementById('expensePayment').value,
+                description: document.getElementById('expenseDesc').value,
+                date: document.getElementById('expenseDate').value
+            };
+
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('expenseResult').innerHTML = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('expenseResult').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        async function addIncome() {
+            const data = {
+                userEmail: document.getElementById('incomeEmail').value,
+                amount: parseFloat(document.getElementById('incomeAmount').value),
+                category: document.getElementById('incomeCategory').value,
+                person: document.getElementById('incomePerson').value,
+                paymentMethod: document.getElementById('incomePayment').value,
+                description: document.getElementById('incomeDesc').value,
+                date: document.getElementById('incomeDate').value
+            };
+
+            try {
+                const response = await fetch('/api/income', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('incomeResult').innerHTML = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('incomeResult').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        async function getBalance() {
+            const email = document.getElementById('balanceEmail').value;
+            try {
+                const response = await fetch(`/api/balance?userEmail=${email}`);
+                const result = await response.json();
+                document.getElementById('balanceResult').innerHTML = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('balanceResult').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

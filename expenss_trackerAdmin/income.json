@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1768639231999",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 5000,
+    "category": "Salary",
+    "person": "Company",
+    "paymentMethod": "Bank",
+    "description": "Monthly salary",
+    "date": "2026-01-17",
+    "type": "income",
+    "createdAt": "2026-01-17T08:40:31.999Z"
+  },
+  {
+    "id": "1768639751390",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 20000,
+    "category": "Salary",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-17T14:18:59.325",
+    "type": "income",
+    "createdAt": "2026-01-17T08:49:11.390Z"
+  },
+  {
+    "id": "1768640497476",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 3000,
+    "category": "Pocket money",
+    "person": "Self",
+    "paymentMethod": "Online",
+    "description": "",
+    "date": "2026-01-17T14:31:08.263",
+    "type": "income",
+    "createdAt": "2026-01-17T09:01:37.476Z"
+  }
+]

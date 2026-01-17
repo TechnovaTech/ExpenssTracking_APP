@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/expense_service.dart';
 import 'dart:io';
 import 'dart:convert';
 
@@ -677,7 +678,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     // Legacy method - can be removed
   }
 
-  void _saveIncome() {
+  void _saveIncome() async {
     if (_amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter an amount')),
@@ -685,11 +686,30 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       return;
     }
 
-    // Save income logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Income added successfully!')),
+    // Get user email from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final userEmail = prefs.getString('user_email') ?? 'user@example.com';
+
+    final result = await ExpenseService.addIncome(
+      userEmail: userEmail,
+      amount: double.parse(_amountController.text),
+      category: _selectedCategory,
+      person: _selectedPerson,
+      paymentMethod: _selectedPaymentMethod,
+      description: _noteController.text,
+      date: _selectedDate.toIso8601String(),
     );
-    Navigator.pop(context);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message']), backgroundColor: Colors.green),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override

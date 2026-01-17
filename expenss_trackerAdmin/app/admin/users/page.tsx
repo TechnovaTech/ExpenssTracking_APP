@@ -5,26 +5,43 @@ import Link from 'next/link'
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/admin/login')
-      return
-    }
-    loadUsers(token)
-  }, [router])
+    loadUsers()
+  }, [])
 
-  const loadUsers = async (token: string) => {
+  const loadUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) setUsers((await res.json()).users)
+      const res = await fetch('/api/admin/users')
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data.users || [])
+        setFilteredUsers(data.users || [])
+        console.log('Users loaded:', data.users)
+      } else {
+        console.error('Failed to load users:', res.status)
+      }
     } catch (error) {
-      console.error(error)
+      console.error('Error loading users:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term)
+    if (term.trim() === '') {
+      setFilteredUsers(users)
+    } else {
+      const filtered = users.filter((user: any) => 
+        user.name.toLowerCase().includes(term.toLowerCase()) ||
+        user.email.toLowerCase().includes(term.toLowerCase())
+      )
+      setFilteredUsers(filtered)
     }
   }
 
@@ -69,26 +86,44 @@ export default function Users() {
           </div>
         </header>
 
+        <div style={{ marginBottom: '20px' }}>
+          <input
+            type="text"
+            placeholder="Search users by name or email..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+          />
+        </div>
+
         <div className="card">
           <table className="table">
             <thead>
               <tr>
                 <th>User</th>
                 <th>Email</th>
+                <th>Database</th>
+                <th>Status</th>
                 <th>Joined Date</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user: any) => (
+              {filteredUsers.map((user: any) => (
                 <tr key={user._id}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="user-avatar">{user.name.charAt(0)}</div>
-                      <span style={{ fontWeight: 600 }}>{user.name}</span>
-                    </div>
+                    <span style={{ fontWeight: 600 }}>{user.name}</span>
                   </td>
                   <td>{user.email}</td>
+                  <td><code style={{fontSize: '12px', background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px'}}>{user.databaseName}</code></td>
+                  <td><span style={{color: user.isActive ? '#22c55e' : '#ef4444'}}>{user.isActive ? '✅ Active' : '❌ Inactive'}</span></td>
                   <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td>
                     <Link href={`/admin/users/${user._id}`}>

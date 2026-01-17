@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/otp_service.dart';
 import 'home_screen.dart';
 
@@ -43,6 +44,10 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
+      // Save user email to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_email', widget.email);
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),

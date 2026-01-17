@@ -1,22 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/mongodb';
-import { verifyToken } from '@/lib/auth';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+const USERS_FILE = join(process.cwd(), 'users.json');
+
+function loadUsers() {
+  if (existsSync(USERS_FILE)) {
+    return JSON.parse(readFileSync(USERS_FILE, 'utf-8'));
+  }
+  return [];
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-
-    const db = await getAdminDb();
-    const users = await db.collection('users')
-      .find({}, { projection: { password: 0 } })
-      .toArray();
+    const users = loadUsers();
     
-    return NextResponse.json({ users });
+    const usersWithDbInfo = users.map((user: any) => {
+      const userDbId = user.email.substring(0, 6).replace(/[^a-zA-Z0-9]/g, '');
+      return {
+        ...user,
+        databaseName: `expense_tracker_user_${userDbId}`
+      };
+    });
+    
+    return NextResponse.json({ 
+      users: usersWithDbInfo,
+      total: users.length 
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   } catch (error) {
+    console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }

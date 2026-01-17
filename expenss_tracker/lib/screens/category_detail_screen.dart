@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/expense_service.dart';
 import 'add_transaction_screen.dart';
 
-class CategoryDetailScreen extends StatelessWidget {
+class CategoryDetailScreen extends StatefulWidget {
   final String categoryName;
   final IconData categoryIcon;
   final Color categoryColor;
@@ -14,13 +15,73 @@ class CategoryDetailScreen extends StatelessWidget {
     required this.categoryColor,
   });
 
-  final List<Map<String, dynamic>> transactions = const [
-    {'title': 'Doctor Visit', 'amount': '-₹500', 'date': '15 Nov', 'type': 'expense'},
-    {'title': 'Medicine', 'amount': '-₹150', 'date': '12 Nov', 'type': 'expense'},
-    {'title': 'Health Insurance', 'amount': '-₹1,800', 'date': '10 Nov', 'type': 'expense'},
-    {'title': 'Gym Membership', 'amount': '-₹2,000', 'date': '8 Nov', 'type': 'expense'},
-    {'title': 'Vitamins', 'amount': '-₹300', 'date': '5 Nov', 'type': 'expense'},
-  ];
+  @override
+  State<CategoryDetailScreen> createState() => _CategoryDetailScreenState();
+}
+
+class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
+  List<Map<String, dynamic>> transactions = [];
+  bool isLoading = true;
+  double totalSpent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() => isLoading = true);
+    
+    const userEmail = 'krimavadodariya07@gmail.com';
+    
+    try {
+      final response = await ExpenseService.getExpenses(userEmail);
+      if (response['success']) {
+        final expenses = response['data']['expenses'] as List;
+        
+        List<Map<String, dynamic>> categoryTransactions = [];
+        double total = 0;
+        
+        for (var expense in expenses) {
+          if (expense['category'] == widget.categoryName) {
+            categoryTransactions.add({
+              'title': expense['description'] ?? widget.categoryName,
+              'amount': expense['amount'],
+              'date': DateTime.parse(expense['date']),
+              'type': 'expense'
+            });
+            total += expense['amount'];
+          }
+        }
+        
+        categoryTransactions.sort((a, b) => b['date'].compareTo(a['date']));
+        
+        setState(() {
+          transactions = categoryTransactions;
+          totalSpent = total;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +89,7 @@ class CategoryDetailScreen extends StatelessWidget {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          categoryName,
+          widget.categoryName,
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
             color: const Color(0xFF1A1A1A),
@@ -64,12 +125,12 @@ class CategoryDetailScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: categoryColor.withOpacity(0.15),
+                    color: widget.categoryColor.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    categoryIcon,
-                    color: categoryColor,
+                    widget.categoryIcon,
+                    color: widget.categoryColor,
                     size: 32,
                   ),
                 ),
@@ -79,7 +140,7 @@ class CategoryDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        categoryName,
+                        widget.categoryName,
                         style: GoogleFonts.inter(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -88,11 +149,11 @@ class CategoryDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Total Spent: ₹2,450',
+                        'Total Spent: ₹${totalSpent.toStringAsFixed(0)}',
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: categoryColor,
+                          color: widget.categoryColor,
                         ),
                       ),
                     ],
@@ -131,78 +192,98 @@ class CategoryDetailScreen extends StatelessWidget {
 
           // Transaction List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: transactions.length,
-              itemBuilder: (context, index) {
-                final transaction = transactions[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: categoryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          categoryIcon,
-                          color: categoryColor,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : transactions.isEmpty
+                    ? Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
                             Text(
-                              transaction['title'],
+                              'No transactions found',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF1A1A1A),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              transaction['date'],
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: const Color(0xFF6B7280),
+                                color: Colors.grey[600],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Text(
-                        transaction['amount'],
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: transaction['type'] == 'expense' 
-                              ? Colors.red 
-                              : Colors.green,
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadTransactions,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: transactions.length,
+                          itemBuilder: (context, index) {
+                            final transaction = transactions[index];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: widget.categoryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      widget.categoryIcon,
+                                      color: widget.categoryColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          transaction['title'],
+                                          style: GoogleFonts.inter(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF1A1A1A),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _formatDate(transaction['date']),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            color: const Color(0xFF6B7280),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '-₹${transaction['amount']}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -211,13 +292,13 @@ class CategoryDetailScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => AddTransactionScreen(
-              categoryName: categoryName,
-              categoryIcon: categoryIcon,
-              categoryColor: categoryColor,
+              categoryName: widget.categoryName,
+              categoryIcon: widget.categoryIcon,
+              categoryColor: widget.categoryColor,
             ),
           ),
         ),
-        backgroundColor: categoryColor,
+        backgroundColor: widget.categoryColor,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
           'Add Transaction',

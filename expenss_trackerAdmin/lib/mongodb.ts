@@ -15,13 +15,14 @@ export const connectAdminDB = async () => {
 };
 
 export const getUserDB = (userId: string) => {
-  const dbName = `expense_tracker_user_${userId}`;
+  const userDbId = userId.substring(0, 6).replace(/[^a-zA-Z0-9]/g, '');
+  const dbName = `expense_tracker_user_${userDbId}`;
   
-  if (connections[userId]) {
-    return connections[userId];
+  if (connections[userDbId]) {
+    return connections[userDbId];
   }
   
   const conn = mongoose.createConnection(process.env.MONGO_URI + dbName);
-  connections[userId] = conn;
+  connections[userDbId] = conn;
   return conn;
 };

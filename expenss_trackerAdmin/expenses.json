@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1768639202167",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 2000,
+    "category": "Rent",
+    "person": "self",
+    "paymentMethod": "Cash",
+    "description": "monthly rent",
+    "date": "2026-01-17",
+    "type": "expense",
+    "createdAt": "2026-01-17T08:40:02.167Z"
+  },
+  {
+    "id": "1768640550952",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 500,
+    "category": "Stationary",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-17T14:31:53.584",
+    "type": "expense",
+    "createdAt": "2026-01-17T09:02:30.952Z"
+  }
+]

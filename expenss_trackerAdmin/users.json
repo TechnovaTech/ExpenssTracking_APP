@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "1768631050311",
+    "name": "krimavadodariya07",
+    "email": "krimavadodariya07@gmail.com",
+    "isActive": true,
+    "createdAt": "2026-01-17T06:24:10.311Z",
+    "updatedAt": "2026-01-17T06:24:10.314Z"
+  },
+  {
+    "_id": "1768632005836",
+    "name": "snehvadodariya05",
+    "email": "snehvadodariya05@gmail.com",
+    "isActive": true,
+    "createdAt": "2026-01-17T06:40:05.836Z",
+    "updatedAt": "2026-01-17T06:40:05.836Z"
+  }
+]
