@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function UserDetail({ params }: { params: { userId: string } }) {
+export default function UserDetail({ params }: { params: Promise<{ userId: string }> }) {
+  const resolvedParams = use(params)
   const [user, setUser] = useState<any>(null)
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -28,12 +29,12 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
     try {
       const [userRes, dataRes] = await Promise.all([
         fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/admin/user-data/${params.userId}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`/api/admin/user-data/${resolvedParams.userId}`, { headers: { Authorization: `Bearer ${token}` } })
       ])
 
       if (userRes.ok) {
         const users = (await userRes.json()).users
-        setUser(users.find((u: any) => u._id === params.userId))
+        setUser(users.find((u: any) => u._id === resolvedParams.userId))
       }
       if (dataRes.ok) setUserData(await dataRes.json())
     } catch (error) {
@@ -56,7 +57,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
 
   const saveExpense = async () => {
     const token = localStorage.getItem('token')
-    const url = editingExpense ? `/api/admin/manage-expenses/${params.userId}` : `/api/admin/manage-expenses/${params.userId}`
+    const url = editingExpense ? `/api/admin/manage-expenses/${resolvedParams.userId}` : `/api/admin/manage-expenses/${resolvedParams.userId}`
     const method = editingExpense ? 'PUT' : 'POST'
     const body = editingExpense ? { ...expenseForm, id: editingExpense._id } : expenseForm
 
@@ -69,7 +70,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
   const deleteExpense = async (id: string) => {
     if (!confirm('Delete this expense?')) return
     const token = localStorage.getItem('token')
-    await fetch(`/api/admin/manage-expenses/${params.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    await fetch(`/api/admin/manage-expenses/${resolvedParams.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
     loadUserData(token!)
   }
 
@@ -81,7 +82,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
 
   const saveIncome = async () => {
     const token = localStorage.getItem('token')
-    const url = `/api/admin/manage-income/${params.userId}`
+    const url = `/api/admin/manage-income/${resolvedParams.userId}`
     const method = editingIncome ? 'PUT' : 'POST'
     const body = editingIncome ? { ...incomeForm, id: editingIncome._id } : incomeForm
 
@@ -94,7 +95,7 @@ export default function UserDetail({ params }: { params: { userId: string } }) {
   const deleteIncome = async (id: string) => {
     if (!confirm('Delete this income?')) return
     const token = localStorage.getItem('token')
-    await fetch(`/api/admin/manage-income/${params.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    await fetch(`/api/admin/manage-income/${resolvedParams.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
     loadUserData(token!)
   }
 

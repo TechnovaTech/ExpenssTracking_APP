@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,10 +15,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _nameController = TextEditingController(text: 'John Doe');
-  final _emailController = TextEditingController(text: 'john.doe@email.com');
-  final _phoneController = TextEditingController(text: '+1 234 567 8900');
-  final _budgetController = TextEditingController(text: '5000');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _budgetController = TextEditingController();
   
   String _currency = 'USD';
   bool _notifications = true;
@@ -24,6 +26,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage;
   Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  void _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    _nameController.text = prefs.getString('profile_name') ?? '';
+    // Get email from login session or saved profile
+    String? loginEmail = prefs.getString('user_email') ?? prefs.getString('login_email');
+    _emailController.text = loginEmail ?? prefs.getString('profile_email') ?? '';
+    _phoneController.text = prefs.getString('profile_phone') ?? '';
+    _budgetController.text = prefs.getString('profile_budget') ?? '';
+    _currency = prefs.getString('profile_currency') ?? 'USD';
+    _notifications = prefs.getBool('profile_notifications') ?? true;
+    _darkMode = prefs.getBool('profile_darkmode') ?? false;
+    
+    // Load saved image
+    if (kIsWeb) {
+      String? savedImage = prefs.getString('profile_image');
+      if (savedImage != null && savedImage.isNotEmpty) {
+        try {
+          _webImage = base64Decode(savedImage);
+        } catch (e) {
+          print('Error loading saved image: $e');
+        }
+      }
+    } else {
+      String? imagePath = prefs.getString('profile_image_path');
+      if (imagePath != null && imagePath.isNotEmpty) {
+        File imageFile = File(imagePath);
+        if (await imageFile.exists()) {
+          _profileImage = imageFile;
+        }
+      }
+    }
+    
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       color: Colors.grey[200],
                                       child: Center(
                                         child: Text(
-                                          'JD',
+                                          _nameController.text.isNotEmpty 
+                                              ? _nameController.text.substring(0, 1).toUpperCase()
+                                              : 'U',
                                           style: GoogleFonts.inter(
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold,
@@ -114,7 +160,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       color: Colors.grey[200],
                                       child: Center(
                                         child: Text(
-                                          'JD',
+                                          _nameController.text.isNotEmpty 
+                                              ? _nameController.text.substring(0, 1).toUpperCase()
+                                              : 'U',
                                           style: GoogleFonts.inter(
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold,
@@ -148,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'John Doe',
+                    _nameController.text.isNotEmpty ? _nameController.text : 'User Name',
                     style: GoogleFonts.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -184,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSection(
               'Financial Settings',
               [
-                _buildTextField('Monthly Budget', _budgetController, Icons.account_balance_wallet_outlined, prefix: '\$'),
+                _buildTextField('Monthly Budget', _budgetController, Icons.account_balance_wallet_outlined, prefix: '₹'),
                 _buildDropdown('Currency', _currency, ['USD', 'EUR', 'GBP', 'INR'], Icons.attach_money),
               ],
             ),
@@ -197,32 +245,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               [
                 _buildSwitchTile('Push Notifications', _notifications, (value) {
                   setState(() => _notifications = value);
+                  _saveNotificationSetting(value);
                 }),
                 _buildSwitchTile('Dark Mode', _darkMode, (value) {
                   setState(() => _darkMode = value);
+                  _saveDarkModeSetting(value);
                 }),
               ],
             ),
 
             const SizedBox(height: 20),
 
-            // Quick Stats
+            // Quick Stats - Dynamic
             _buildSection(
               'Quick Stats',
               [
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('Total Income', '\$12,450', Colors.green)),
+                    Expanded(child: _buildStatCard('Total Income', '₹0', Colors.green)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Total Expenses', '\$8,230', Colors.red)),
+                    Expanded(child: _buildStatCard('Total Expenses', '₹0', Colors.red)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('Savings', '\$4,220', Colors.blue)),
+                    Expanded(child: _buildStatCard('Savings', '₹0', Colors.blue)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildStatCard('Budget Left', '\$1,770', Colors.orange)),
+                    Expanded(child: _buildStatCard('Budget Left', _budgetController.text.isNotEmpty ? '₹${_budgetController.text}' : '₹0', Colors.orange)),
                   ],
                 ),
               ],
@@ -256,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 child: Text(
-                  'Save Changes',
+                  'Save',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -308,6 +358,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
+        onChanged: (value) {
+          setState(() {}); // Update UI when text changes
+          // Auto-save specific fields
+          if (label == 'Full Name') {
+            _saveNameChange(value);
+          } else if (label == 'Phone') {
+            _savePhoneChange(value);
+          } else if (label == 'Monthly Budget') {
+            _saveBudgetChange(value);
+          }
+        },
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: const Color(0xFF6C63FF)),
@@ -353,6 +414,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             setState(() {
               _currency = newValue;
             });
+            // Auto-save currency change
+            _saveCurrencyChange(newValue);
           }
         },
       ),
@@ -460,10 +523,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         setState(() {
                           _webImage = bytes;
                         });
+                        // Save image to SharedPreferences
+                        final prefs = await SharedPreferences.getInstance();
+                        String base64Image = base64Encode(bytes);
+                        await prefs.setString('profile_image', base64Image);
                       } else {
                         setState(() {
                           _profileImage = File(image.path);
                         });
+                        // Save image path for mobile
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('profile_image_path', image.path);
                       }
                     }
                   },
@@ -484,6 +554,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         setState(() {
                           _profileImage = File(image.path);
                         });
+                        // Save image path for mobile
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('profile_image_path', image.path);
                       }
                     },
                   ),
@@ -502,13 +575,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _saveProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile updated successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _saveNameChange(String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_name', name.trim());
+    } catch (e) {
+      print('Error saving name: $e');
+    }
+  }
+
+  void _savePhoneChange(String phone) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_phone', phone.trim());
+    } catch (e) {
+      print('Error saving phone: $e');
+    }
+  }
+
+  void _saveBudgetChange(String budget) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_budget', budget.trim());
+    } catch (e) {
+      print('Error saving budget: $e');
+    }
+  }
+
+  void _saveNotificationSetting(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('profile_notifications', value);
+    } catch (e) {
+      print('Error saving notification setting: $e');
+    }
+  }
+
+  void _saveDarkModeSetting(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('profile_darkmode', value);
+    } catch (e) {
+      print('Error saving dark mode setting: $e');
+    }
+  }
+
+  void _saveCurrencyChange(String currency) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_currency', currency);
+    } catch (e) {
+      print('Error saving currency: $e');
+    }
+  }
+
+  void _saveProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save all profile data
+      await prefs.setString('profile_name', _nameController.text.trim());
+      await prefs.setString('profile_email', _emailController.text.trim());
+      await prefs.setString('profile_phone', _phoneController.text.trim());
+      await prefs.setString('profile_budget', _budgetController.text.trim());
+      await prefs.setString('profile_currency', _currency);
+      await prefs.setBool('profile_notifications', _notifications);
+      await prefs.setBool('profile_darkmode', _darkMode);
+      
+      // Save image data if exists
+      if (kIsWeb && _webImage != null) {
+        String base64Image = base64Encode(_webImage!);
+        await prefs.setString('profile_image', base64Image);
+      } else if (!kIsWeb && _profileImage != null) {
+        await prefs.setString('profile_image_path', _profileImage!.path);
+      }
+      
+      // Also save to user_email for login persistence
+      if (_emailController.text.trim().isNotEmpty) {
+        await prefs.setString('user_email', _emailController.text.trim());
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile saved successfully! All changes are now permanent.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving profile: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
