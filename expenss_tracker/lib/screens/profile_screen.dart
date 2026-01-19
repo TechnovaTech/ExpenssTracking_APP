@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifications = true;
   bool _darkMode = false;
   File? _profileImage;
+  Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -64,20 +67,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: const Color(0xFF6C63FF),
-                        backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                        child: _profileImage == null
-                            ? Text(
-                                'JD',
-                                style: GoogleFonts.inter(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : null,
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF6C63FF),
+                            width: 3,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: kIsWeb
+                              ? (_webImage != null
+                                  ? Image.memory(
+                                      _webImage!,
+                                      width: 94,
+                                      height: 94,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      width: 94,
+                                      height: 94,
+                                      color: Colors.grey[200],
+                                      child: Center(
+                                        child: Text(
+                                          'JD',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF6C63FF),
+                                          ),
+                                        ),
+                                      ),
+                                    ))
+                              : (_profileImage != null
+                                  ? Image.file(
+                                      _profileImage!,
+                                      width: 94,
+                                      height: 94,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      width: 94,
+                                      height: 94,
+                                      color: Colors.grey[200],
+                                      child: Center(
+                                        child: Text(
+                                          'JD',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF6C63FF),
+                                          ),
+                                        ),
+                                      ),
+                                    )),
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
@@ -390,11 +436,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _pickProfileImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _profileImage = File(image.path);
-      });
+    try {
+      showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final XFile? image = await _picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 80,
+                      maxWidth: 512,
+                      maxHeight: 512,
+                    );
+                    if (image != null) {
+                      if (kIsWeb) {
+                        final bytes = await image.readAsBytes();
+                        setState(() {
+                          _webImage = bytes;
+                        });
+                      } else {
+                        setState(() {
+                          _profileImage = File(image.path);
+                        });
+                      }
+                    }
+                  },
+                ),
+                if (!kIsWeb)
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt),
+                    title: const Text('Camera'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final XFile? image = await _picker.pickImage(
+                        source: ImageSource.camera,
+                        imageQuality: 80,
+                        maxWidth: 512,
+                        maxHeight: 512,
+                      );
+                      if (image != null) {
+                        setState(() {
+                          _profileImage = File(image.path);
+                        });
+                      }
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

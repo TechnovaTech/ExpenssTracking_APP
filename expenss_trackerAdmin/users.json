@@ -14,5 +14,13 @@
     "isActive": true,
     "createdAt": "2026-01-17T06:40:05.836Z",
     "updatedAt": "2026-01-17T06:40:05.836Z"
+  },
+  {
+    "_id": "1768797914929",
+    "name": "ishitavadodariya12",
+    "email": "ishitavadodariya12@gmail.com",
+    "isActive": true,
+    "createdAt": "2026-01-19T04:45:14.929Z",
+    "updatedAt": "2026-01-19T04:45:14.929Z"
   }
 ]
