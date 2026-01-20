@@ -28,7 +28,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const { userEmail, amount, category, person, paymentMethod, description, date } = await request.json();
+    const { userEmail, amount, category, person, paymentMethod, description, date, imageId, imagePath } = await request.json();
 
     if (!userEmail || !amount || !category) {
       return NextResponse.json({ message: 'Missing required fields' }, { 
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       description: description || '',
       date: date || new Date().toISOString(),
       type: 'income',
+      imageId: imageId || null,
+      imagePath: imagePath || null,
       createdAt: new Date().toISOString()
     };
 

@@ -1,35 +1,91 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserDB } from '@/lib/mongodb';
-import { getPaymentMethodModel } from '@/models/PaymentMethod';
+import { NextResponse } from 'next/server';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-export async function GET(req: NextRequest) {
+const PAYMENT_METHODS_FILE = join(process.cwd(), 'payment-methods.json');
+
+function loadPaymentMethods() {
+  if (existsSync(PAYMENT_METHODS_FILE)) {
+    return JSON.parse(readFileSync(PAYMENT_METHODS_FILE, 'utf-8'));
+  }
+  return [];
+}
+
+function savePaymentMethods(paymentMethods: any[]) {
+  writeFileSync(PAYMENT_METHODS_FILE, JSON.stringify(paymentMethods, null, 2));
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function POST(request: Request) {
   try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    const { userEmail, paymentMethod } = await request.json();
 
-    const userDB = getUserDB(userId);
-    const PaymentMethod = getPaymentMethodModel(userDB);
-    
-    const methods = await PaymentMethod.find();
-    return NextResponse.json(methods);
+    if (!userEmail || !paymentMethod) {
+      return NextResponse.json({ message: 'Missing required fields' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
+    const paymentMethods = loadPaymentMethods();
+    const existingMethod = paymentMethods.find((pm: any) => 
+      pm.userEmail === userEmail.toLowerCase().trim() && pm.name === paymentMethod
+    );
+
+    if (!existingMethod) {
+      const newPaymentMethod = {
+        id: Date.now().toString(),
+        userEmail: userEmail.toLowerCase().trim(),
+        name: paymentMethod,
+        createdAt: new Date().toISOString()
+      };
+
+      paymentMethods.push(newPaymentMethod);
+      savePaymentMethods(paymentMethods);
+    }
+
+    return NextResponse.json({ 
+      message: 'Payment method saved successfully'
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Failed to save payment method' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    const url = new URL(request.url);
+    const userEmail = url.searchParams.get('userEmail')?.toLowerCase().trim();
 
-    const userDB = getUserDB(userId);
-    const PaymentMethod = getPaymentMethodModel(userDB);
-    
-    const body = await req.json();
-    const method = await PaymentMethod.create(body);
-    
-    return NextResponse.json(method, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const paymentMethods = loadPaymentMethods();
+    const userPaymentMethods = userEmail 
+      ? paymentMethods.filter((pm: any) => pm.userEmail === userEmail)
+      : paymentMethods;
+
+    return NextResponse.json({ 
+      paymentMethods: userPaymentMethods.map((pm: any) => pm.name)
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
+  } catch (error) {
+    return NextResponse.json({ message: 'Failed to get payment methods' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }

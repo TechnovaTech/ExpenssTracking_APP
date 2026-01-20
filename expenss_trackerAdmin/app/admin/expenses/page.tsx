@@ -20,7 +20,11 @@ export default function Expenses() {
   const loadExpenses = async (token: string) => {
     try {
       const res = await fetch('/api/expenses', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) setExpenses((await res.json()).expenses)
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Loaded expenses:', data.expenses);
+        setExpenses(data.expenses);
+      }
     } catch (error) {
       console.error(error)
     } finally {
@@ -79,17 +83,39 @@ export default function Expenses() {
                 <th>Payment</th>
                 <th>Person</th>
                 <th>Amount</th>
+                <th>Image</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map((exp: any) => (
-                <tr key={exp._id}>
+                <tr key={exp._id || exp.id}>
                   <td>{new Date(exp.date).toLocaleDateString()}</td>
                   <td>{exp.category}</td>
                   <td>{exp.description}</td>
                   <td>{exp.paymentMethod || 'N/A'}</td>
                   <td>{exp.person || 'N/A'}</td>
                   <td style={{ fontWeight: 600, color: '#667eea' }}>₹{exp.amount.toFixed(2)}</td>
+                  <td>
+                    {exp.imagePath ? (
+                      <div>
+                        <img 
+                          src={`/api/images/${exp.imagePath}`} 
+                          alt="Expense receipt" 
+                          style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => window.open(`/api/images/${exp.imagePath}`, '_blank')}
+                          onError={(e) => {
+                            console.log('Image failed to load:', exp.imagePath);
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling.style.display = 'inline';
+                          }}
+                        />
+                        <small style={{ display: 'block', fontSize: '10px', color: '#666' }}>{exp.imagePath}</small>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#999' }}>No image</span>
+                    )}
+                    <span style={{ color: 'red', display: 'none' }}>Image not found</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

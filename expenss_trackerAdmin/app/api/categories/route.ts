@@ -1,35 +1,91 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserDB } from '@/lib/mongodb';
-import { getCategoryModel } from '@/models/Category';
+import { NextResponse } from 'next/server';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-export async function GET(req: NextRequest) {
+const CATEGORIES_FILE = join(process.cwd(), 'categories.json');
+
+function loadCategories() {
+  if (existsSync(CATEGORIES_FILE)) {
+    return JSON.parse(readFileSync(CATEGORIES_FILE, 'utf-8'));
+  }
+  return [];
+}
+
+function saveCategories(categories: any[]) {
+  writeFileSync(CATEGORIES_FILE, JSON.stringify(categories, null, 2));
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+export async function POST(request: Request) {
   try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    const { userEmail, category } = await request.json();
 
-    const userDB = getUserDB(userId);
-    const Category = getCategoryModel(userDB);
-    
-    const categories = await Category.find();
-    return NextResponse.json(categories);
+    if (!userEmail || !category) {
+      return NextResponse.json({ message: 'Missing required fields' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
+    const categories = loadCategories();
+    const existingCategory = categories.find((c: any) => 
+      c.userEmail === userEmail.toLowerCase().trim() && c.name === category
+    );
+
+    if (!existingCategory) {
+      const newCategory = {
+        id: Date.now().toString(),
+        userEmail: userEmail.toLowerCase().trim(),
+        name: category,
+        createdAt: new Date().toISOString()
+      };
+
+      categories.push(newCategory);
+      saveCategories(categories);
+    }
+
+    return NextResponse.json({ 
+      message: 'Category saved successfully'
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Failed to save category' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    const url = new URL(request.url);
+    const userEmail = url.searchParams.get('userEmail')?.toLowerCase().trim();
 
-    const userDB = getUserDB(userId);
-    const Category = getCategoryModel(userDB);
-    
-    const body = await req.json();
-    const category = await Category.create(body);
-    
-    return NextResponse.json(category, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const categories = loadCategories();
+    const userCategories = userEmail 
+      ? categories.filter((c: any) => c.userEmail === userEmail)
+      : categories;
+
+    return NextResponse.json({ 
+      categories: userCategories.map((c: any) => c.name)
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
+  } catch (error) {
+    return NextResponse.json({ message: 'Failed to get categories' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
   }
 }

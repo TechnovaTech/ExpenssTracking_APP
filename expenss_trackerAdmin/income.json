@@ -34,5 +34,69 @@
     "date": "2026-01-17T14:31:08.263",
     "type": "income",
     "createdAt": "2026-01-17T09:01:37.476Z"
+  },
+  {
+    "id": "1768802095831",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 3000,
+    "category": "Salary",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-19T11:24:41.994",
+    "type": "income",
+    "createdAt": "2026-01-19T05:54:55.832Z"
+  },
+  {
+    "id": "1768816802946",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 5000,
+    "category": "Home",
+    "person": "Dad",
+    "paymentMethod": "Online",
+    "description": "came from home",
+    "date": "2026-01-19T15:29:20.435",
+    "type": "income",
+    "createdAt": "2026-01-19T10:00:02.946Z"
+  },
+  {
+    "id": "1768881989358",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 50000,
+    "category": "FD",
+    "person": "Self",
+    "paymentMethod": "Check",
+    "description": "Fix Deposite from bank",
+    "date": "2026-01-20T09:35:50.086",
+    "type": "income",
+    "createdAt": "2026-01-20T04:06:29.358Z"
+  },
+  {
+    "id": "1768892661966",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 700,
+    "category": "FD",
+    "person": "Dad",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-20T12:34:03.631",
+    "type": "income",
+    "imageId": "1768892652244",
+    "imagePath": "uploaded_1768892652244.jpg",
+    "createdAt": "2026-01-20T07:04:21.966Z"
+  },
+  {
+    "id": "1768902466378",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 1000,
+    "category": "Fees",
+    "person": "Self",
+    "paymentMethod": "Online",
+    "description": "",
+    "date": "2026-01-20T15:17:23.069",
+    "type": "income",
+    "imageId": "1768902463136",
+    "imagePath": "image_1768902462279.jpg",
+    "createdAt": "2026-01-20T09:47:46.378Z"
   }
 ]

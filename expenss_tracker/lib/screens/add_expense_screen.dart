@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/expense_service.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -22,21 +24,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _newCategoryController = TextEditingController();
   final _newPaymentMethodController = TextEditingController();
   final _newPersonController = TextEditingController();
-  String _selectedCategory = 'Food';
-  String _selectedPaymentMethod = 'Cash';
-  String _selectedPerson = 'Self';
+  String _selectedCategory = '';
+  String _selectedPaymentMethod = '';
+  String _selectedPerson = '';
   DateTime _selectedDate = DateTime.now();
   File? _uploadedImage;
   String? _uploadedDocument;
+  String? _uploadedImageId;
+  String? _uploadedImagePath;
   final ImagePicker _picker = ImagePicker();
 
-  List<String> _categories = [
-    'Food', 'Transport', 'Shopping', 'Medical', 'Entertainment', 
-    'Bills', 'Education', 'Personal', 'Wife', 'Other'
-  ];
-
-  List<String> _paymentMethods = ['Cash', 'Online', 'Credit Card'];
-  List<String> _persons = ['Self', 'Child', 'Spouse'];
+  List<String> _categories = [];
+  List<String> _paymentMethods = [];
+  List<String> _persons = [];
+  bool _isLoading = true;
 
   Map<String, IconData> _categoryIcons = {
     'Food': Icons.restaurant,
@@ -54,23 +55,34 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadExistingData();
   }
 
-  Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _categories = prefs.getStringList('expense_categories') ?? ['Food', 'Transport', 'Shopping', 'Medical', 'Entertainment', 'Bills', 'Education', 'Personal', 'Wife', 'Other'];
-      _paymentMethods = prefs.getStringList('expense_payment_methods') ?? ['Cash', 'Online', 'Credit Card'];
-      _persons = prefs.getStringList('expense_persons') ?? ['Self', 'Child', 'Spouse'];
-    });
-  }
-
-  Future<void> _saveData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('expense_categories', _categories);
-    await prefs.setStringList('expense_payment_methods', _paymentMethods);
-    await prefs.setStringList('expense_persons', _persons);
+  Future<void> _loadExistingData() async {
+    setState(() => _isLoading = true);
+    
+    const userEmail = 'krimavadodariya07@gmail.com';
+    
+    try {
+      final categoriesResult = await ExpenseService.getCategories(userEmail);
+      final personsResult = await ExpenseService.getPersons(userEmail);
+      final paymentMethodsResult = await ExpenseService.getPaymentMethods(userEmail);
+      
+      setState(() {
+        if (categoriesResult['success']) {
+          _categories = List<String>.from(categoriesResult['data']['categories'] ?? []);
+        }
+        if (personsResult['success']) {
+          _persons = List<String>.from(personsResult['data']['persons'] ?? []);
+        }
+        if (paymentMethodsResult['success']) {
+          _paymentMethods = List<String>.from(paymentMethodsResult['data']['paymentMethods'] ?? []);
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -95,7 +107,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF6C63FF)),
           ),
         ),
-        body: SingleChildScrollView(
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +168,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _categoryIcons[category],
+                              _categoryIcons[category] ?? Icons.category,
                               size: 18,
                               color: isSelected ? Colors.white : Colors.grey[600],
                             ),
@@ -388,15 +402,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       child: _uploadedImage != null
                           ? Column(
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    _uploadedImage!,
-                                    height: 100,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                                kIsWeb
+                                    ? Container(
+                                        height: 100,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(Icons.image, size: 50),
+                                      )
+                                    : ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          _uploadedImage!,
+                                          height: 100,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Image uploaded',
@@ -546,15 +570,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           actions: [
             TextButton(onPressed: () { _newCategoryController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_newCategoryController.text.trim().isNotEmpty) {
+                  const userEmail = 'krimavadodariya07@gmail.com';
+                  final newCategory = _newCategoryController.text.trim();
+                  
+                  // Save to backend
+                  await ExpenseService.saveCategory(userEmail, newCategory);
+                  
                   setState(() {
-                    final newCategory = _newCategoryController.text.trim();
-                    _categories.insert(_categories.length - 1, newCategory);
+                    _categories.add(newCategory);
                     _categoryIcons[newCategory] = Icons.label;
                     _selectedCategory = newCategory;
                   });
-                  _saveData();
                   _newCategoryController.clear();
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Category added!'), backgroundColor: Colors.green));
@@ -589,13 +617,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           actions: [
             TextButton(onPressed: () { _newPaymentMethodController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_newPaymentMethodController.text.trim().isNotEmpty) {
+                  const userEmail = 'krimavadodariya07@gmail.com';
+                  final newPaymentMethod = _newPaymentMethodController.text.trim();
+                  
+                  // Save to backend
+                  await ExpenseService.savePaymentMethod(userEmail, newPaymentMethod);
+                  
                   setState(() {
-                    _paymentMethods.add(_newPaymentMethodController.text.trim());
-                    _selectedPaymentMethod = _newPaymentMethodController.text.trim();
+                    _paymentMethods.add(newPaymentMethod);
+                    _selectedPaymentMethod = newPaymentMethod;
                   });
-                  _saveData();
                   _newPaymentMethodController.clear();
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment method added!'), backgroundColor: Colors.green));
@@ -630,13 +663,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           actions: [
             TextButton(onPressed: () { _newPersonController.clear(); Navigator.pop(context); }, child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600))),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_newPersonController.text.trim().isNotEmpty) {
+                  const userEmail = 'krimavadodariya07@gmail.com';
+                  final newPerson = _newPersonController.text.trim();
+                  
+                  // Save to backend
+                  await ExpenseService.savePerson(userEmail, newPerson);
+                  
                   setState(() {
-                    _persons.add(_newPersonController.text.trim());
-                    _selectedPerson = _newPersonController.text.trim();
+                    _persons.add(newPerson);
+                    _selectedPerson = newPerson;
                   });
-                  _saveData();
                   _newPersonController.clear();
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Person added!'), backgroundColor: Colors.green));
@@ -652,29 +690,69 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _uploadImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _uploadedImage = File(image.path);
-      });
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        // Read image bytes and send as base64
+        try {
+          final bytes = await image.readAsBytes();
+          final base64Image = base64Encode(bytes);
+          final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+          final fileName = 'image_${timestamp}.jpg';
+          
+          const userEmail = 'krimavadodariya07@gmail.com';
+          final baseUrl = kIsWeb 
+              ? 'http://localhost:3000/api'
+              : 'http://192.168.157.67:3000/api';
+          final response = await http.post(
+            Uri.parse('$baseUrl/upload-image'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'userEmail': userEmail,
+              'transactionType': 'expense',
+              'imageData': base64Image,
+              'fileName': fileName,
+            }),
+          );
+          
+          if (response.statusCode == 200) {
+            final responseData = json.decode(response.body);
+            setState(() {
+              _uploadedImage = File(image.path);
+              _uploadedImageId = responseData['imageId'];
+              _uploadedImagePath = responseData['fileName'];
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image uploaded successfully!'), backgroundColor: Colors.green),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Upload failed: $e')),
+          );
+        }
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Image uploaded successfully!')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
 
   void _uploadDocument() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'txt'],
-    );
-    
-    if (result != null) {
-      setState(() {
-        _uploadedDocument = result.files.single.name;
-      });
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        setState(() {
+          _uploadedDocument = result.files.single.name;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Document uploaded successfully!')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document uploaded successfully!')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -691,9 +769,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
-    // Get user email from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final userEmail = prefs.getString('user_email') ?? 'user@example.com';
+    if (_selectedCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a category')),
+      );
+      return;
+    }
+
+    const userEmail = 'krimavadodariya07@gmail.com';
+
+    // Image data is already set in _uploadImage method
 
     final result = await ExpenseService.addExpense(
       userEmail: userEmail,
@@ -703,6 +788,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       paymentMethod: _selectedPaymentMethod,
       description: _noteController.text,
       date: _selectedDate.toIso8601String(),
+      imageId: _uploadedImageId,
+      imagePath: _uploadedImagePath,
     );
 
     if (result['success']) {

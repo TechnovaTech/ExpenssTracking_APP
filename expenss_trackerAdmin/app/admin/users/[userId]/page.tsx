@@ -1,12 +1,17 @@
 'use client'
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function UserDetail({ params }: { params: Promise<{ userId: string }> }) {
-  const resolvedParams = use(params)
+interface PageProps {
+  params: { userId: string }
+}
+
+export default function UserDetail({ params }: PageProps) {
+  const { userId } = params
   const [user, setUser] = useState<any>(null)
   const [userData, setUserData] = useState<any>(null)
+  const [userImages, setUserImages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [showIncomeModal, setShowIncomeModal] = useState(false)
@@ -29,12 +34,29 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
     try {
       const [userRes, dataRes] = await Promise.all([
         fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/admin/user-data/${resolvedParams.userId}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`/api/admin/user-data/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
       ])
 
       if (userRes.ok) {
         const users = (await userRes.json()).users
-        setUser(users.find((u: any) => u._id === resolvedParams.userId))
+        const foundUser = users.find((u: any) => u._id === userId)
+        setUser(foundUser)
+        
+        // Load images after we have user email
+        if (foundUser?.email) {
+          try {
+            const imgRes = await fetch(`/api/images?userEmail=${foundUser.email}`)
+            if (imgRes.ok) {
+              const imgData = await imgRes.json()
+              console.log('Images loaded:', imgData)
+              setUserImages(imgData.images || [])
+            } else {
+              console.error('Failed to load images:', imgRes.status)
+            }
+          } catch (imgError) {
+            console.error('Image loading error:', imgError)
+          }
+        }
       }
       if (dataRes.ok) setUserData(await dataRes.json())
     } catch (error) {
@@ -57,7 +79,7 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
 
   const saveExpense = async () => {
     const token = localStorage.getItem('token')
-    const url = editingExpense ? `/api/admin/manage-expenses/${resolvedParams.userId}` : `/api/admin/manage-expenses/${resolvedParams.userId}`
+    const url = editingExpense ? `/api/admin/manage-expenses/${userId}` : `/api/admin/manage-expenses/${userId}`
     const method = editingExpense ? 'PUT' : 'POST'
     const body = editingExpense ? { ...expenseForm, id: editingExpense._id } : expenseForm
 
@@ -70,7 +92,7 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
   const deleteExpense = async (id: string) => {
     if (!confirm('Delete this expense?')) return
     const token = localStorage.getItem('token')
-    await fetch(`/api/admin/manage-expenses/${resolvedParams.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    await fetch(`/api/admin/manage-expenses/${userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
     loadUserData(token!)
   }
 
@@ -82,7 +104,7 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
 
   const saveIncome = async () => {
     const token = localStorage.getItem('token')
-    const url = `/api/admin/manage-income/${resolvedParams.userId}`
+    const url = `/api/admin/manage-income/${userId}`
     const method = editingIncome ? 'PUT' : 'POST'
     const body = editingIncome ? { ...incomeForm, id: editingIncome._id } : incomeForm
 
@@ -95,7 +117,7 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
   const deleteIncome = async (id: string) => {
     if (!confirm('Delete this income?')) return
     const token = localStorage.getItem('token')
-    await fetch(`/api/admin/manage-income/${resolvedParams.userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    await fetch(`/api/admin/manage-income/${userId}?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
     loadUserData(token!)
   }
 
@@ -232,18 +254,31 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
                   <th>Payment</th>
                   <th>Person</th>
                   <th>Amount</th>
+                  <th>Image</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {userData.expenses.map((exp: any) => (
-                  <tr key={exp._id}>
+                  <tr key={exp.id || exp._id}>
                     <td>{new Date(exp.date).toLocaleDateString()}</td>
                     <td>{exp.category}</td>
                     <td>{exp.description}</td>
                     <td>{exp.paymentMethod || 'N/A'}</td>
                     <td>{exp.person || 'N/A'}</td>
                     <td style={{ fontWeight: 600, color: '#dc3545' }}>₹{Number(exp.amount).toFixed(2)}</td>
+                    <td>
+                      {exp.imagePath ? (
+                        <img 
+                          src={`/api/images/${exp.imagePath}`} 
+                          alt="Expense receipt" 
+                          style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => window.open(`/api/images/${exp.imagePath}`, '_blank')}
+                        />
+                      ) : (
+                        <span style={{ color: '#999', fontSize: '12px' }}>No image</span>
+                      )}
+                    </td>
                     <td>
                       <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px', marginRight: '5px' }} onClick={() => editExpense(exp)}>Edit</button>
                       <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => deleteExpense(exp._id)}>Delete</button>
@@ -253,6 +288,29 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
               </tbody>
             </table>
           ) : <p style={{ color: '#666', fontSize: '14px', marginTop: '15px' }}>No expenses</p>}
+        </div>
+
+        <div className="card" style={{ marginTop: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0 }}>Uploaded Images ({userImages.length})</h3>
+          </div>
+          {userImages.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' }}>
+              {userImages.map((img: any) => (
+                <div key={img.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+                  <img 
+                    src={`/api/images/${img.fileName}`} 
+                    alt={img.originalName}
+                    style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px', cursor: 'pointer' }}
+                    onClick={() => window.open(`/api/images/${img.fileName}`, '_blank')}
+                  />
+                  <p style={{ fontSize: '12px', margin: '0 0 5px 0', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{img.originalName}</p>
+                  <p style={{ fontSize: '10px', margin: '0', color: '#666' }}>{img.transactionType}</p>
+                  <p style={{ fontSize: '10px', margin: '0', color: '#999' }}>{new Date(img.uploadedAt).toLocaleDateString()}</p>
+                </div>
+              ))}
+            </div>
+          ) : <p style={{ color: '#666', fontSize: '14px', marginTop: '15px' }}>No images uploaded</p>}
         </div>
 
         <div className="card" style={{ marginTop: '20px' }}>
@@ -268,16 +326,29 @@ export default function UserDetail({ params }: { params: Promise<{ userId: strin
                   <th>Source</th>
                   <th>Description</th>
                   <th>Amount</th>
+                  <th>Image</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {userData.income.map((inc: any) => (
-                  <tr key={inc._id}>
+                  <tr key={inc.id || inc._id}>
                     <td>{new Date(inc.date).toLocaleDateString()}</td>
                     <td>{inc.source}</td>
                     <td>{inc.description}</td>
                     <td style={{ fontWeight: 600, color: '#198754' }}>₹{Number(inc.amount).toFixed(2)}</td>
+                    <td>
+                      {inc.imagePath ? (
+                        <img 
+                          src={`/api/images/${inc.imagePath}`} 
+                          alt="Income receipt" 
+                          style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => window.open(`/api/images/${inc.imagePath}`, '_blank')}
+                        />
+                      ) : (
+                        <span style={{ color: '#999', fontSize: '12px' }}>No image</span>
+                      )}
+                    </td>
                     <td>
                       <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px', marginRight: '5px' }} onClick={() => editIncome(inc)}>Edit</button>
                       <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => deleteIncome(inc._id)}>Delete</button>

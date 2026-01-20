@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Upload & Expense/Income API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        input, button { margin: 5px; padding: 8px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        img { max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Test Image Upload & Expense/Income API</h1>
+    
+    <div class="section">
+        <h3>1. Upload Image</h3>
+        <input type="file" id="imageFile" accept="image/*">
+        <input type="email" id="userEmail" placeholder="User Email" value="krimavadodariya07@gmail.com">
+        <select id="transactionType">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+        </select>
+        <button onclick="uploadImage()">Upload Image</button>
+        <div id="uploadResult"></div>
+        <div id="uploadedImagePreview"></div>
+    </div>
+    
+    <div class="section">
+        <h3>2. Create Expense with Image</h3>
+        <input type="number" id="expenseAmount" placeholder="Amount" value="100">
+        <input type="text" id="expenseCategory" placeholder="Category" value="Food">
+        <input type="text" id="expenseDescription" placeholder="Description" value="Test expense with image">
+        <input type="text" id="expensePaymentMethod" placeholder="Payment Method" value="Cash">
+        <input type="text" id="expensePerson" placeholder="Person" value="Self">
+        <button onclick="createExpense()">Create Expense</button>
+        <div id="expenseResult"></div>
+    </div>
+    
+    <div class="section">
+        <h3>3. Create Income with Image</h3>
+        <input type="number" id="incomeAmount" placeholder="Amount" value="1000">
+        <input type="text" id="incomeCategory" placeholder="Category" value="Salary">
+        <input type="text" id="incomeDescription" placeholder="Description" value="Test income with image">
+        <input type="text" id="incomePaymentMethod" placeholder="Payment Method" value="Bank">
+        <input type="text" id="incomePerson" placeholder="Person" value="Company">
+        <button onclick="createIncome()">Create Income</button>
+        <div id="incomeResult"></div>
+    </div>
+    
+    <div class="section">
+        <h3>4. View Expenses</h3>
+        <button onclick="viewExpenses()">Load Expenses</button>
+        <div id="expensesResult"></div>
+    </div>
+    
+    <div class="section">
+        <h3>5. View Income</h3>
+        <button onclick="viewIncome()">Load Income</button>
+        <div id="incomeListResult"></div>
+    </div>
+
+    <script>
+        let uploadedImageId = null;
+        let uploadedImagePath = null;
+        const baseUrl = 'http://localhost:3000/api';
+        
+        async function uploadImage() {
+            const fileInput = document.getElementById('imageFile');
+            const userEmail = document.getElementById('userEmail').value;
+            const transactionType = document.getElementById('transactionType').value;
+            const resultDiv = document.getElementById('uploadResult');
+            const previewDiv = document.getElementById('uploadedImagePreview');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="result error">Please select an image file</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('userEmail', userEmail);
+            formData.append('transactionType', transactionType);
+            
+            try {
+                const response = await fetch(`${baseUrl}/upload-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    uploadedImageId = data.imageId;
+                    uploadedImagePath = data.fileName;
+                    resultDiv.innerHTML = `<div class="result success">Image uploaded successfully! ID: ${data.imageId}</div>`;
+                    previewDiv.innerHTML = `<img src="${baseUrl}/images/${data.fileName}" alt="Uploaded image">`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Upload failed: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function createExpense() {
+            const userEmail = document.getElementById('userEmail').value;
+            const amount = document.getElementById('expenseAmount').value;
+            const category = document.getElementById('expenseCategory').value;
+            const description = document.getElementById('expenseDescription').value;
+            const paymentMethod = document.getElementById('expensePaymentMethod').value;
+            const person = document.getElementById('expensePerson').value;
+            const resultDiv = document.getElementById('expenseResult');
+            
+            const expenseData = {
+                userEmail,
+                amount: parseFloat(amount),
+                category,
+                description,
+                paymentMethod,
+                person,
+                date: new Date().toISOString(),
+                imageId: uploadedImageId,
+                imagePath: uploadedImagePath
+            };
+            
+            try {
+                const response = await fetch(`${baseUrl}/expenses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(expenseData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="result success">Expense created successfully! ${uploadedImageId ? 'With image linked.' : 'No image linked.'}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Failed to create expense: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function createIncome() {
+            const userEmail = document.getElementById('userEmail').value;
+            const amount = document.getElementById('incomeAmount').value;
+            const category = document.getElementById('incomeCategory').value;
+            const description = document.getElementById('incomeDescription').value;
+            const paymentMethod = document.getElementById('incomePaymentMethod').value;
+            const person = document.getElementById('incomePerson').value;
+            const resultDiv = document.getElementById('incomeResult');
+            
+            const incomeData = {
+                userEmail,
+                amount: parseFloat(amount),
+                category,
+                description,
+                paymentMethod,
+                person,
+                date: new Date().toISOString(),
+                imageId: uploadedImageId,
+                imagePath: uploadedImagePath
+            };
+            
+            try {
+                const response = await fetch(`${baseUrl}/income`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(incomeData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="result success">Income created successfully! ${uploadedImageId ? 'With image linked.' : 'No image linked.'}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Failed to create income: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function viewExpenses() {
+            const userEmail = document.getElementById('userEmail').value;
+            const resultDiv = document.getElementById('expensesResult');
+            
+            try {
+                const response = await fetch(`${baseUrl}/expenses?userEmail=${userEmail}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let html = '<div class="result success"><h4>Expenses:</h4>';
+                    data.expenses.forEach(exp => {
+                        html += `<div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 4px;">
+                            <strong>₹${exp.amount}</strong> - ${exp.category} - ${exp.description}<br>
+                            <small>Payment: ${exp.paymentMethod || 'N/A'} | Person: ${exp.person || 'N/A'}</small><br>
+                            ${exp.imagePath ? `<img src="${baseUrl}/images/${exp.imagePath}" style="max-width: 100px; max-height: 100px; margin-top: 5px;">` : '<em>No image</em>'}
+                        </div>`;
+                    });
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Failed to load expenses: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function viewIncome() {
+            const userEmail = document.getElementById('userEmail').value;
+            const resultDiv = document.getElementById('incomeListResult');
+            
+            try {
+                const response = await fetch(`${baseUrl}/income?userEmail=${userEmail}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let html = '<div class="result success"><h4>Income:</h4>';
+                    data.income.forEach(inc => {
+                        html += `<div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 4px;">
+                            <strong>₹${inc.amount}</strong> - ${inc.category} - ${inc.description}<br>
+                            <small>Payment: ${inc.paymentMethod || 'N/A'} | Person: ${inc.person || 'N/A'}</small><br>
+                            ${inc.imagePath ? `<img src="${baseUrl}/images/${inc.imagePath}" style="max-width: 100px; max-height: 100px; margin-top: 5px;">` : '<em>No image</em>'}
+                        </div>`;
+                    });
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Failed to load income: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

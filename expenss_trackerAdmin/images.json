@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1768884039499",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "1768884039497_fff17adebb9478bd2dbbc1e8a86fa9e2.jpg",
+    "originalName": "fff17adebb9478bd2dbbc1e8a86fa9e2.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\1768884039497_fff17adebb9478bd2dbbc1e8a86fa9e2.jpg",
+    "transactionType": "expense",
+    "uploadedAt": "2026-01-20T04:40:39.499Z"
+  },
+  {
+    "id": "1768890384981",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "image_1768890384981.jpg",
+    "originalName": "image_1768890384981.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\image_1768890384981.jpg",
+    "transactionType": "expense",
+    "uploadedAt": "2026-01-20T06:26:25.440Z"
+  },
+  {
+    "id": "1768899431679",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "image_1768899431679.jpg",
+    "originalName": "image_1768899431679.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\image_1768899431679.jpg",
+    "transactionType": "expense",
+    "uploadedAt": "2026-01-20T08:57:12.534Z"
+  },
+  {
+    "id": "1768900644700",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "image_1768900643776.jpg",
+    "originalName": "image_1768900643776.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\image_1768900643776.jpg",
+    "transactionType": "expense",
+    "uploadedAt": "2026-01-20T09:17:24.700Z"
+  },
+  {
+    "id": "1768902166932",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "image_1768902166192.jpg",
+    "originalName": "image_1768902166192.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\image_1768902166192.jpg",
+    "transactionType": "expense",
+    "uploadedAt": "2026-01-20T09:42:46.932Z"
+  },
+  {
+    "id": "1768902463136",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "fileName": "image_1768902462279.jpg",
+    "originalName": "image_1768902462279.jpg",
+    "filePath": "D:\\ExpenssApp\\expenss_trackerAdmin\\uploads\\image_1768902462279.jpg",
+    "transactionType": "income",
+    "uploadedAt": "2026-01-20T09:47:43.136Z"
+  }
+]
