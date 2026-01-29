@@ -98,5 +98,61 @@
     "imageId": "1768902463136",
     "imagePath": "image_1768902462279.jpg",
     "createdAt": "2026-01-20T09:47:46.378Z"
+  },
+  {
+    "id": "1769605520423",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 300,
+    "category": "Shopping",
+    "person": "Dad",
+    "paymentMethod": "Online",
+    "description": "",
+    "date": "2026-01-28T18:34:26.821",
+    "type": "income",
+    "imageId": "1769605502974",
+    "imagePath": "image_1769605500242.jpg",
+    "createdAt": "2026-01-28T13:05:20.424Z"
+  },
+  {
+    "id": "1769606825244",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 4000,
+    "category": "COLOR",
+    "person": "Self",
+    "paymentMethod": "Online",
+    "description": "",
+    "date": "2026-01-28T18:56:03.209",
+    "type": "income",
+    "imageId": "1769606817285",
+    "imagePath": "image_1769606814794.jpg",
+    "createdAt": "2026-01-28T13:27:05.244Z"
+  },
+  {
+    "id": "1769659058632",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 200,
+    "category": "additional",
+    "person": "freelance",
+    "paymentMethod": "Online",
+    "description": "",
+    "date": "2026-01-29T09:26:46.191",
+    "type": "income",
+    "imageId": "1769659052539",
+    "imagePath": "image_1769659052137.jpg",
+    "createdAt": "2026-01-29T03:57:38.632Z"
+  },
+  {
+    "id": "1769664433427",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 300,
+    "category": "FD",
+    "person": "Dad",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-29T10:57:00.669",
+    "type": "income",
+    "imageId": null,
+    "imagePath": null,
+    "createdAt": "2026-01-29T05:27:13.427Z"
   }
 ]

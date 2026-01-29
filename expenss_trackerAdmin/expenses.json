@@ -362,5 +362,61 @@
     "imageId": null,
     "imagePath": null,
     "createdAt": "2026-01-20T09:49:58.521Z"
+  },
+  {
+    "id": "1769605559161",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 8000,
+    "category": "road trip",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-28T18:35:25.840",
+    "type": "expense",
+    "imageId": null,
+    "imagePath": null,
+    "createdAt": "2026-01-28T13:05:59.161Z"
+  },
+  {
+    "id": "1769606854733",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 4000,
+    "category": "Food",
+    "person": "Dad",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-28T18:57:16.150",
+    "type": "expense",
+    "imageId": null,
+    "imagePath": null,
+    "createdAt": "2026-01-28T13:27:34.733Z"
+  },
+  {
+    "id": "1769659082712",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 200,
+    "category": "FD",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-29T09:27:48.206",
+    "type": "expense",
+    "imageId": null,
+    "imagePath": null,
+    "createdAt": "2026-01-29T03:58:02.712Z"
+  },
+  {
+    "id": "1769664465238",
+    "userEmail": "krimavadodariya07@gmail.com",
+    "amount": 300,
+    "category": "Shopping",
+    "person": "Self",
+    "paymentMethod": "Cash",
+    "description": "",
+    "date": "2026-01-29T10:57:32.584",
+    "type": "expense",
+    "imageId": null,
+    "imagePath": null,
+    "createdAt": "2026-01-29T05:27:45.238Z"
   }
 ]

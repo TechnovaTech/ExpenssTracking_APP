@@ -5,43 +5,53 @@ import Link from 'next/link'
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
   const router = useRouter()
 
   useEffect(() => {
-    loadUsers()
-  }, [])
+    const token = localStorage.getItem('token')
+    if (!token) {
+      router.push('/admin/login')
+      return
+    }
+    loadUsers(token)
+  }, [router])
 
-  const loadUsers = async () => {
+  const loadUsers = async (token: string) => {
     try {
-      const res = await fetch('/api/admin/users')
-      if (res.ok) {
-        const data = await res.json()
-        setUsers(data.users || [])
-        setFilteredUsers(data.users || [])
-        console.log('Users loaded:', data.users)
-      } else {
-        console.error('Failed to load users:', res.status)
+      const response = await fetch('/api/admin/users', { 
+        headers: { Authorization: `Bearer ${token}` } 
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.users)
       }
     } catch (error) {
-      console.error('Error loading users:', error)
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term)
-    if (term.trim() === '') {
-      setFilteredUsers(users)
-    } else {
-      const filtered = users.filter((user: any) => 
-        user.name.toLowerCase().includes(term.toLowerCase()) ||
-        user.email.toLowerCase().includes(term.toLowerCase())
-      )
-      setFilteredUsers(filtered)
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    const token = localStorage.getItem('token')
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: !currentStatus })
+      })
+      
+      if (response.ok) {
+        setUsers(users.map(user => 
+          user._id === userId ? { ...user, isActive: !currentStatus } : user
+        ))
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error)
     }
   }
 
@@ -56,23 +66,14 @@ export default function Users() {
     <div className="admin-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h2>💰 Expense Tracker</h2>
+          <h2>👥 User Management</h2>
         </div>
         <nav className="sidebar-nav">
           <Link href="/admin/dashboard" className="nav-item">
             <span>📊</span> Dashboard
           </Link>
-          <Link href="/admin/expenses" className="nav-item">
-            <span>💳</span> Expenses
-          </Link>
           <Link href="/admin/users" className="nav-item active">
-            <span>👥</span> Users
-          </Link>
-          <Link href="/admin/categories" className="nav-item">
-            <span>📁</span> Categories
-          </Link>
-          <Link href="/admin/settings" className="nav-item">
-            <span>⚙️</span> Settings
+            <span>👥</span> All Users
           </Link>
         </nav>
         <button className="logout-btn" onClick={logout}>🚪 Logout</button>
@@ -80,60 +81,62 @@ export default function Users() {
 
       <main className="main-content">
         <header className="page-header">
-          <h1>Users Management</h1>
+          <h1>All Users</h1>
           <div className="user-info">
-            <span>Admin</span>
+            <span>Total: {users.length} users</span>
           </div>
         </header>
 
-        <div style={{ marginBottom: '20px' }}>
-          <input
-            type="text"
-            placeholder="Search users by name or email..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-          />
-        </div>
-
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Database</th>
-                <th>Status</th>
-                <th>Joined Date</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user: any) => (
-                <tr key={user._id}>
-                  <td>
-                    <span style={{ fontWeight: 600 }}>{user.name}</span>
-                  </td>
-                  <td>{user.email}</td>
-                  <td><code style={{fontSize: '12px', background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px'}}>{user.databaseName}</code></td>
-                  <td><span style={{color: user.isActive ? '#22c55e' : '#ef4444'}}>{user.isActive ? '✅ Active' : '❌ Inactive'}</span></td>
-                  <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <Link href={`/admin/users/${user._id}`}>
-                      <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>View Details</button>
-                    </Link>
-                  </td>
+        <div className="content">
+          <div className="card">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((user: any) => (
+                  <tr key={user._id}>
+                    <td>
+                      <div className="user-details">
+                        <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                          <div className="user-name">{user.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="user-email">{user.email}</div>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${user.isActive ? 'status-active' : 'status-inactive'}`}>
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td>
+                      <button 
+                        className={`action-btn ${user.isActive ? 'btn-danger' : 'btn-primary'}`}
+                        onClick={() => toggleUserStatus(user._id, user.isActive)}
+                      >
+                        {user.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <Link href={`/admin/users/${user._id}`} className="action-btn btn-primary">
+                        View Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
     </div>

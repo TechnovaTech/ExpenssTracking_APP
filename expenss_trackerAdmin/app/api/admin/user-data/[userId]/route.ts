@@ -5,56 +5,45 @@ import { join } from 'path';
 const EXPENSES_FILE = join(process.cwd(), 'expenses.json');
 const INCOME_FILE = join(process.cwd(), 'income.json');
 const USERS_FILE = join(process.cwd(), 'users.json');
+const CATEGORIES_FILE = join(process.cwd(), 'categories.json');
+const PERSONS_FILE = join(process.cwd(), 'persons.json');
+const PAYMENT_METHODS_FILE = join(process.cwd(), 'payment-methods.json');
 
-function loadExpenses() {
-  if (existsSync(EXPENSES_FILE)) {
-    return JSON.parse(readFileSync(EXPENSES_FILE, 'utf-8'));
-  }
-  return [];
-}
-
-function loadIncome() {
-  if (existsSync(INCOME_FILE)) {
-    return JSON.parse(readFileSync(INCOME_FILE, 'utf-8'));
-  }
-  return [];
-}
-
-function loadUsers() {
-  if (existsSync(USERS_FILE)) {
-    return JSON.parse(readFileSync(USERS_FILE, 'utf-8'));
+function loadFile(filePath: string) {
+  if (existsSync(filePath)) {
+    return JSON.parse(readFileSync(filePath, 'utf-8'));
   }
   return [];
 }
 
 export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    const users = loadUsers();
+    const users = loadFile(USERS_FILE);
     const user = users.find((u: any) => u._id === params.userId);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const expenses = loadExpenses();
-    const income = loadIncome();
+    const expenses = loadFile(EXPENSES_FILE);
+    const income = loadFile(INCOME_FILE);
+    const categories = loadFile(CATEGORIES_FILE);
+    const persons = loadFile(PERSONS_FILE);
+    const paymentMethods = loadFile(PAYMENT_METHODS_FILE);
     
     const userExpenses = expenses.filter((exp: any) => exp.userEmail === user.email);
     const userIncome = income.filter((inc: any) => inc.userEmail === user.email);
-    
-    const totalExpenses = userExpenses.reduce((sum: number, exp: any) => sum + exp.amount, 0);
-    const totalIncome = userIncome.reduce((sum: number, inc: any) => sum + inc.amount, 0);
-    const balance = totalIncome - totalExpenses;
+    const userCategories = categories.filter((cat: any) => cat.userEmail === user.email);
+    const userPersons = persons.filter((person: any) => person.userEmail === user.email);
+    const userPaymentMethods = paymentMethods.filter((pm: any) => pm.userEmail === user.email);
     
     return NextResponse.json({ 
       user,
       expenses: userExpenses,
       income: userIncome,
-      totalExpenses,
-      totalIncome,
-      balance,
-      expenseCount: userExpenses.length,
-      incomeCount: userIncome.length
+      categories: userCategories,
+      persons: userPersons,
+      paymentMethods: userPaymentMethods
     }, {
       headers: { 'Access-Control-Allow-Origin': '*' },
     });
